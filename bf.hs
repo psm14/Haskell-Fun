@@ -1,6 +1,14 @@
 import Control.Monad.State
 import Data.Char
 
+class Monad m => MonadRW m where
+    readChar  :: m Char
+    writeChar :: Char -> m ()
+
+instance MonadRW IO where
+    readChar  = getChar
+    writeChar = putChar
+
 data Mem = Mem [Int] Int [Int]
          deriving (Show)
 
@@ -30,7 +38,7 @@ memDec = memMod $ flip (-) 1 -- Parser reads (-1) as negative 1
 memSet :: Int -> Mem -> Mem
 memSet b = memMod $ const b
 
-memOp :: (Mem -> Mem) -> String -> StateT ([String],Mem) IO ()
+memOp :: MonadRW m => (Mem -> Mem) -> String -> StateT ([String],Mem) m ()
 memOp f cs = do (stack,mem) <- get
                 put (stack, f mem)
                 bfStep cs
@@ -45,17 +53,17 @@ findJump' n "" = error "Jumped off the end of the program"
 findJump :: String -> String
 findJump cs = findJump' 0 cs
     
-bfStep :: String -> StateT ([String],Mem) IO ()
+bfStep :: MonadRW m => String -> StateT ([String],Mem) m ()
 bfStep "" = lift $ return ()
 bfStep ('<' : cs) = memOp memLeft  cs
 bfStep ('>' : cs) = memOp memRight cs
 bfStep ('+' : cs) = memOp memInc   cs
 bfStep ('-' : cs) = memOp memDec   cs
 bfStep ('.' : cs) = do (stack,mem) <- get
-                       lift $ putChar (chr $ memDeref mem)
+                       lift $ writeChar (chr $ memDeref mem)
                        bfStep cs
 bfStep (',' : cs) = do (stack,mem) <- get
-                       c <- lift $ getChar
+                       c <- lift $ readChar
                        put (stack, memSet (ord c) mem)
                        bfStep cs
 bfStep ('[' : cs) = do (stack, mem) <- get
@@ -70,5 +78,5 @@ bfStep (']' : cs) = do (stack, mem) <- get
                          bfStep $ head stack
 bfStep (c : cs) = bfStep cs
 
-brainfuck :: String -> IO ()
+brainfuck :: MonadRW m => String -> m ()
 brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
