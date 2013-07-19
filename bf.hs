@@ -44,15 +44,13 @@ memOp f cs = do (stack,mem) <- get
                 put (stack, f mem)
                 bfStep cs
 
-findJump' :: Int -> String -> String
-findJump' 0 (']' : cs) = cs
-findJump' n (']' : cs) = findJump' (n - 1) cs
-findJump' n ('[' : cs) = findJump' (n + 1) cs
-findJump' n (c : cs)   = findJump' n cs
-findJump' n "" = error "Jumped off the end of the program"
-
 findJump :: String -> String
 findJump cs = findJump' 0 cs
+  where findJump' 0 (']' : cs) = cs
+        findJump' n (']' : cs) = findJump' (n - 1) cs
+        findJump' n ('[' : cs) = findJump' (n + 1) cs
+        findJump' n (c   : cs) = findJump' n cs
+        findJump' n ""         = error "Jumped off the end of the program"
     
 bfStep :: MonadRW m => String -> StateT ([String],Mem) m ()
 bfStep "" = lift $ return ()
@@ -70,11 +68,13 @@ bfStep (',' : cs) = do (stack,mem) <- get
 bfStep ('[' : cs) = do (stack, mem) <- get
                        if memDeref mem == 0 then
                          bfStep $ findJump cs
-                       else
-                         put (cs : stack, mem) >> bfStep cs
+                       else do
+                         put (cs : stack, mem)
+                         bfStep cs
 bfStep (']' : cs) = do (stack, mem) <- get
-                       if memDeref mem == 0 then
-                         put (tail stack,mem) >> bfStep cs
+                       if memDeref mem == 0 then do
+                         put (tail stack,mem)
+                         bfStep cs
                        else
                          bfStep $ head stack
 bfStep (c : cs) = bfStep cs
