@@ -51,7 +51,7 @@ findJump cs = findJump' 0 cs
 
 brainfuck :: MonadRW m => String -> m ()
 brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
-  where bfStep "" = lift $ return ()
+  where bfStep "" = return ()
         bfStep ('<' : cs) = memOp memLeft  cs
         bfStep ('>' : cs) = memOp memRight cs
         bfStep ('+' : cs) = memOp memInc   cs
