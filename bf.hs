@@ -82,8 +82,7 @@ bfStep (c : cs) = bfStep cs
 brainfuck :: MonadRW m => String -> m ()
 brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
 
-main = do
-       args <- getArgs
-       let file = head args
-       prog <- readFile file
-       brainfuck prog
+main = do args <- getArgs
+          let file = head args
+          prog <- readFile file
+          brainfuck prog
