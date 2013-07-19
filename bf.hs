@@ -39,11 +39,6 @@ memDec = memMod $ flip (-) 1 -- Parser reads (-1) as negative 1
 memSet :: Int -> Mem -> Mem
 memSet b = memMod $ const b
 
-memOp :: MonadRW m => (Mem -> Mem) -> String -> StateT ([String],Mem) m ()
-memOp f cs = do (stack,mem) <- get
-                put (stack, f mem)
-                bfStep cs
-
 findJump :: String -> String
 findJump cs = findJump' 0 cs
   where findJump' 0 (']' : cs) = cs
@@ -52,35 +47,38 @@ findJump cs = findJump' 0 cs
         findJump' n (c   : cs) = findJump' n cs
         findJump' n ""         = error "Jumped off the end of the program"
     
-bfStep :: MonadRW m => String -> StateT ([String],Mem) m ()
-bfStep "" = lift $ return ()
-bfStep ('<' : cs) = memOp memLeft  cs
-bfStep ('>' : cs) = memOp memRight cs
-bfStep ('+' : cs) = memOp memInc   cs
-bfStep ('-' : cs) = memOp memDec   cs
-bfStep ('.' : cs) = do (stack,mem) <- get
-                       lift $ writeChar (chr $ memDeref mem)
-                       bfStep cs
-bfStep (',' : cs) = do (stack,mem) <- get
-                       c <- lift $ readChar
-                       put (stack, memSet (ord c) mem)
-                       bfStep cs
-bfStep ('[' : cs) = do (stack, mem) <- get
-                       if memDeref mem == 0 then
-                         bfStep $ findJump cs
-                       else do
-                         put (cs : stack, mem)
-                         bfStep cs
-bfStep (']' : cs) = do (stack, mem) <- get
-                       if memDeref mem == 0 then do
-                         put (tail stack,mem)
-                         bfStep cs
-                       else
-                         bfStep $ head stack
-bfStep (c : cs) = bfStep cs
+
 
 brainfuck :: MonadRW m => String -> m ()
 brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
+  where bfStep "" = lift $ return ()
+        bfStep ('<' : cs) = memOp memLeft  cs
+        bfStep ('>' : cs) = memOp memRight cs
+        bfStep ('+' : cs) = memOp memInc   cs
+        bfStep ('-' : cs) = memOp memDec   cs
+        bfStep ('.' : cs) = do (stack,mem) <- get
+                               lift $ writeChar (chr $ memDeref mem)
+                               bfStep cs
+        bfStep (',' : cs) = do (stack,mem) <- get
+                               c <- lift $ readChar
+                               put (stack, memSet (ord c) mem)
+                               bfStep cs
+        bfStep ('[' : cs) = do (stack, mem) <- get
+                               if memDeref mem == 0 then
+                                 bfStep $ findJump cs
+                               else do
+                                 put (cs : stack, mem)
+                                 bfStep cs
+        bfStep (']' : cs) = do (stack, mem) <- get
+                               if memDeref mem == 0 then do
+                                 put (tail stack,mem)
+                                 bfStep cs
+                               else
+                                 bfStep $ head stack
+        bfStep (c : cs) = bfStep cs
+        memOp f cs      = do (stack,mem) <- get
+                             put (stack, f mem)
+                             bfStep cs
 
 main = do args <- getArgs
           let file = head args
