@@ -24,8 +24,8 @@ memRight :: Mem -> Mem
 memRight (Mem as b (c : cs)) = Mem (b : as) c cs
 memRight (Mem as b []) = Mem (b : as) 0 []
 
-memDeref :: Mem -> Int
-memDeref (Mem _ b _) = b
+memGet :: Mem -> Int
+memGet (Mem _ b _) = b
 
 memMod :: (Int -> Int) -> Mem -> Mem
 memMod f (Mem as b cs) = Mem as (f b) cs
@@ -57,20 +57,20 @@ brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
         bfStep ('+' : cs) = memOp memInc   cs
         bfStep ('-' : cs) = memOp memDec   cs
         bfStep ('.' : cs) = do (stack,mem) <- get
-                               lift $ writeChar (chr $ memDeref mem)
+                               lift $ writeChar (chr $ memGet mem)
                                bfStep cs
         bfStep (',' : cs) = do (stack,mem) <- get
                                c <- lift $ readChar
                                put (stack, memSet (ord c) mem)
                                bfStep cs
         bfStep ('[' : cs) = do (stack, mem) <- get
-                               if memDeref mem == 0 then
+                               if memGet mem == 0 then
                                  bfStep $ findJump cs
                                else do
                                  put (cs : stack, mem)
                                  bfStep cs
         bfStep (']' : cs) = do (stack, mem) <- get
-                               if memDeref mem == 0 then do
+                               if memGet mem == 0 then do
                                  put (tail stack,mem)
                                  bfStep cs
                                else
