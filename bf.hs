@@ -60,7 +60,7 @@ brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
                                lift $ writeChar (chr $ memGet mem)
                                bfStep cs
         bfStep (',' : cs) = do (stack,mem) <- get
-                               c <- lift $ readChar
+                               c <- lift readChar
                                put (stack, memSet (ord c) mem)
                                bfStep cs
         bfStep ('[' : cs) = do (stack, mem) <- get
@@ -81,6 +81,5 @@ brainfuck bf = evalStateT (bfStep bf) ([],blankMem)
                              bfStep cs
 
 main = do args <- getArgs
-          let file = head args
-          prog <- readFile file
+          prog <- readFile $ head args
           brainfuck prog
