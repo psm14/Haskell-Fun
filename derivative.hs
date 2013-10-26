@@ -1,3 +1,5 @@
+module Derivative (derivative) where
+
 -- Dual numbers are similar to complex numbers, except with a constant ϵ
 -- defined such that ϵ != 0, but ϵ^2 == 0.
 data Dual a = Dual { real :: a, ϵ :: a }
