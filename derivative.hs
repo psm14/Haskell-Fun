@@ -48,6 +48,7 @@ instance Floating a => Floating (Dual a) where
 -- Example:  derivative (\x -> 1 / x) 2 => -0.25
 --           derivative (\x -> x ^ 3) 2 => 12
 --           derivative (\x -> x ^ 2) (toRational 0.75) => 3 % 2
+--           derivative (derivative (derivative (derivative sin))) $ 3*pi/2 => -1.0
 --
 -- This works because f(x + ϵ) == f(x) + f'(x)ϵ
 derivative :: Num a => (Dual a -> Dual a) -> a -> a
