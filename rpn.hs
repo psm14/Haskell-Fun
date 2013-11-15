@@ -1,5 +1,8 @@
+import Prelude hiding (splitAt)
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Loops
+import Debug.Trace
 
 -- Folding
 
@@ -21,20 +24,59 @@ rpn = head . foldl calc [] . splitOn ' '
 
 -- Imperative
 
+-- TODO: Write these next 3 imperatively
 takeUntil :: (a -> Bool) -> [a] -> [a]
+takeUntil f      []  = []
 takeUntil f (a : as) = if f a then [] else a : takeUntil f as
 
 dropUntil :: (a -> Bool) -> [a] -> [a]
+dropUntil f        []  = []
 dropUntil f l@(a : as) = if f a then l else dropUntil f as
 
-type Stack a t = State [a] t
+splitAt :: (a -> Bool) -> [a] -> ([a],[a])
+splitAt f as = let bs = takeUntil f as
+                   cs = dropUntil f as
+                   end = if length cs == 0 then [] else tail cs
+               in (bs, end)
 
-push :: a -> Stack a ()
-push v = do vs  <- get
-            put $ v : vs
+type Env = State (String, [Double])
+
+push :: Double -> Env ()
+push v = do (str,vs)  <- get
+            put $ (str,v : vs)
             return ()
 
-pop :: Stack a a
-pop = do v : vs <- get
-         put vs
+pop :: Env Double
+pop = do (str, v : vs) <- get
+         put (str,vs)
          return v
+
+nextToken :: Env String
+nextToken = do (str,vs) <- get
+               let (token, rest) = splitAt (== ' ') str
+               put (rest,vs)
+               return token
+
+moreInput :: Env Bool
+moreInput = do (str,_) <- get
+               return $ str /= "" 
+
+rpn' :: String -> Double
+rpn' str = (flip evalState) (str,[]) $ do
+               whileM_ moreInput $ do
+                   token <- nextToken
+                   case token of
+                       "+" -> do a <- pop
+                                 b <- pop
+                                 push (a + b)
+                       "-" -> do a <- pop
+                                 b <- pop
+                                 push (a - b)
+                       "*" -> do a <- pop
+                                 b <- pop
+                                 push (a * b)
+                       "/" -> do a <- pop
+                                 b <- pop
+                                 push (a / b)
+                       num -> push $ read num
+               pop
