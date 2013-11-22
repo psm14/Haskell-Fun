@@ -61,22 +61,19 @@ moreInput :: Env Bool
 moreInput = do (str,_) <- get
                return $ str /= "" 
 
+binOp :: (Double -> Double -> Double) -> Env ()
+binOp f = do a <- pop
+             b <- pop
+             push $ f a b
+
 rpn' :: String -> Double
 rpn' str = (flip evalState) (str,[]) $ do
                whileM_ moreInput $ do
                    token <- nextToken
                    case token of
-                       "+" -> do a <- pop
-                                 b <- pop
-                                 push (a + b)
-                       "-" -> do a <- pop
-                                 b <- pop
-                                 push (a - b)
-                       "*" -> do a <- pop
-                                 b <- pop
-                                 push (a * b)
-                       "/" -> do a <- pop
-                                 b <- pop
-                                 push (a / b)
+                       "+" -> binOp (+)
+                       "-" -> binOp (-)
+                       "*" -> binOp (*)
+                       "/" -> binOp (/)
                        num -> push $ read num
                pop
